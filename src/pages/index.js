@@ -1,118 +1,172 @@
-import Image from "next/image";
-import { Inter } from "next/font/google";
+import Image from 'next/image'
+import React from 'react'
+import { Fragment, useState, useMemo, useCallback } from 'react'
+import ShowPostDetails from './components/ShowPostDetails'
 
-const inter = Inter({ subsets: ["latin"] });
+let perPage = 10
 
-export default function Home() {
+const Home = () => {
+  const [data, setData] = useState()
+  const [page, setPage] = useState(1)
+  const [dataById, setDataById] = useState()
+  const [activeId, setActiveId] = useState()
+  const [isLoading, setIsLoading] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
+
+  const handleClose = () => {
+    setShowDetails(false)
+  }
+
+  const incrementPage = () => {
+    if (page === 10) {
+      return
+    }
+    setPage((prevPage) => prevPage + 1)
+  }
+  const decrementPage = () => {
+    if (page === 1) {
+      return
+    }
+    setPage((prevPage) => prevPage - 1)
+  }
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/posts?_start=${
+          (page - 1) * perPage
+        }&_limit=${perPage}`,
+      )
+      const posts = await response.json()
+      setData(posts)
+    } catch (error) {
+      console.log(error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [page, perPage])
+
+  useMemo(() => {
+    fetchData()
+  }, [fetchData])
+
+  const fetchDataById = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `https://jsonplaceholder.typicode.com/posts/${activeId}`,
+      )
+      const posts = await response.json()
+      setDataById(posts)
+    } catch (error) {
+      console.log(error)
+    } finally {
+    }
+  })
+
+  useMemo(() => {
+    if (typeof activeId !== 'undefined') {
+      fetchDataById()
+    }
+  }, [activeId])
+
   return (
-    <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    >
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/pages/index.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="flex flex-col w-full lg:items-center lg:justify-center min-h-screen bg-[#808080]/20 relative">
+      <div className="flex flex-col lg:w-8/12 w-full mx-auto lg:p-10 p-4">
+        <div className="h-12 top-0 w-full bg-[#171717] flex items-center px-3 text-start text-white">
+          All Posts
+        </div>
+        <div className="w-full mx-auto bg-white flex flex-col gap-4 lg:h-[450px] h-[75vh] overflow-y-auto relative">
+          <div className="grid grid-cols-5 gap-4 w-full border-b py-2 px-3 bg-white">
+            <p className="uppercase opacity-50 font-medium text-sm">id</p>
+            <p className="uppercase opacity-50 font-medium text-sm col-span-3">
+              title
+            </p>
+            <p className="uppercase opacity-50 font-medium text-sm">action</p>
+          </div>
+
+          <Fragment>
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 w-full h-[350px]">
+                <Image
+                  priority={false}
+                  src="loader.svg"
+                  alt="loader"
+                  width={24}
+                  height={24}
+                  className="animate-spin"
+                />
+
+                <p className="text-sm text-center font-medium">Loading</p>
+              </div>
+            ) : (
+              <Fragment>
+                {typeof data !== undefined ? (
+                  <Fragment>
+                    {React.Children.toArray(
+                      data?.map((item, index) => (
+                        <div className="grid grid-cols-5 gap-4 w-full border-b py-2 px-3 items-start">
+                          <p className="text-sm">{item.id}</p>
+                          <p className="text-sm col-span-3">{item.title}</p>
+                          <button
+                            onClick={() => {
+                              setActiveId(item.id)
+                              setShowDetails(true)
+                            }}
+                          >
+                            <Image
+                              priority={false}
+                              src="/eye.svg"
+                              alt="view"
+                              width={22}
+                              height={22}
+                              className="opacity-50 hover:opacity-100"
+                            />
+                          </button>
+                        </div>
+                      )),
+                    )}
+                  </Fragment>
+                ) : (
+                  <div>
+                    <p className="flex items-center justify-center text-sm font-medium">
+                      No Posts Found!
+                    </p>
+                  </div>
+                )}
+              </Fragment>
+            )}
+          </Fragment>
+        </div>
+
+        <div className="flex items-center justify-center w-full mt-6">
+          <button
+            onClick={decrementPage}
+            className={`bg-[#171717] text-white select-none h-[46px] px-4 text-sm hover:opacity-50 ${
+              page === 1 ? 'opacity-50 pointer-events-none' : ''
+            }`}
           >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            &lt;
+          </button>
+          <button className="h-[46px] px-4 text-sm bg-white">{page}</button>
+          <button
+            onClick={incrementPage}
+            className={`bg-[#171717] text-white select-none h-[46px] px-4 text-sm hover:opacity-50 ${
+              page === 10 ? 'opacity-50 pointer-events-none' : ''
+            }`}
+          >
+            &gt;
+          </button>
         </div>
       </div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+      {showDetails ? (
+        <ShowPostDetails handleClose={handleClose} data={dataById} />
+      ) : (
+        <Fragment />
+      )}
+    </div>
+  )
 }
+
+export default Home
